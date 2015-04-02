@@ -6,7 +6,7 @@
 
 /*****************************************************************************
 lua50_profiler.c:
-   Lua version dependent profiler interface
+Lua version dependent profiler interface
 *****************************************************************************/
 
 #include <stdio.h>
@@ -47,8 +47,7 @@ static void callhook(lua_State *L, lua_Debug *ar) {
 	//}
 
 	//printf("call hook: event = %d; stack_level = %d\n", ar->event, stack_level);
-
-
+	
 	int currentline;
 	lua_Debug previous_ar;
 
@@ -58,31 +57,32 @@ static void callhook(lua_State *L, lua_Debug *ar) {
 	S = (lprofP_STATE*)lua_touserdata(L, -1);
 
 	if (lua_getstack(L, 1, &previous_ar) == 0) {
-	  currentline = -1;
-	} else {
-	  lua_getinfo(L, "l", &previous_ar);
-	  currentline = previous_ar.currentline;
+		currentline = -1;
 	}
-	    
+	else {
+		lua_getinfo(L, "l", &previous_ar);
+		currentline = previous_ar.currentline;
+	}
+
 	lua_getinfo(L, "nS", ar);
 
 	if (!ar->event) {
-	 /* entering a function */
-	 lprofP_callhookIN(S, (char *)ar->name,
-	  (char *)ar->source, ar->linedefined,
-	  currentline);
+		/* entering a function */
+		lprofP_callhookIN(S, (char *)ar->name,
+			(char *)ar->source, ar->linedefined,
+			currentline);
 
-	 lua_pop(L, 1);
+		lua_pop(L, 1);
 	}
 	else { /* ar->event == "return" */
-	 lprofP_STATE* R;
-	 lua_pushlightuserdata(L, &profresult_id);
-	 lua_gettable(L, LUA_REGISTRYINDEX);
-	 R = (lprofP_STATE*)lua_touserdata(L, -1);
+		lprofP_STATE* R;
+		lua_pushlightuserdata(L, &profresult_id);
+		lua_gettable(L, LUA_REGISTRYINDEX);
+		R = (lprofP_STATE*)lua_touserdata(L, -1);
 
-	 lprofP_callhookOUT(S, R);
+		lprofP_callhookOUT(S, R);
 
-	 lua_pop(L, 2);
+		lua_pop(L, 2);
 	}
 
 	//printf("%d\n", lua_gettop(L));
@@ -94,142 +94,144 @@ static void callhook(lua_State *L, lua_Debug *ar) {
 /* The log file is assumed to be valid if the last entry has a stack level  */
 /* of 1 (meaning that the function 'main' has been exited)                  */
 static void exit_profiler(lua_State *L) {
-  lprofP_STATE* S;
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  S = (lprofP_STATE*)lua_touserdata(L, -1);
+	lprofP_STATE* S;
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	S = (lprofP_STATE*)lua_touserdata(L, -1);
 
-  lprofP_STATE* R;
-  lua_pushlightuserdata(L, &profresult_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  R = (lprofP_STATE*)lua_touserdata(L, -1);
+	lprofP_STATE* R;
+	lua_pushlightuserdata(L, &profresult_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	R = (lprofP_STATE*)lua_touserdata(L, -1);
 
-  /* leave all functions under execution */
-  while (lprofP_callhookOUT(S, R));
+	/* leave all functions under execution */
+	while (lprofP_callhookOUT(S, R));
 
-  /* call the original Lua 'exit' function */
-  lua_pushlightuserdata(L, &exit_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  lua_call(L, 0, 0);
+	/* call the original Lua 'exit' function */
+	lua_pushlightuserdata(L, &exit_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	lua_call(L, 0, 0);
 }
 
 /* Our new coroutine.create function  */
 /* Creates a new profile state for the coroutine */
 #if 0
 static int coroutine_create(lua_State *L) {
-  lprofP_STATE* S;
-  lua_State *NL = lua_newthread(L);
-  luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1), 1,
+	lprofP_STATE* S;
+	lua_State *NL = lua_newthread(L);
+	luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1), 1,
 		"Lua function expected");
-  lua_pushvalue(L, 1);  /* move function to top */
-  lua_xmove(L, NL, 1);  /* move function from L to NL */
-  /* Inits profiler and sets profiler hook for this coroutine */
-  S = lprofM_init();
-  lua_pushlightuserdata(L, NL);
-  lua_pushlightuserdata(L, S);
-  lua_settable(L, LUA_REGISTRYINDEX);
-  lua_sethook(NL, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
-  return 1;	
+	lua_pushvalue(L, 1);  /* move function to top */
+	lua_xmove(L, NL, 1);  /* move function from L to NL */
+	/* Inits profiler and sets profiler hook for this coroutine */
+	S = lprofM_init();
+	lua_pushlightuserdata(L, NL);
+	lua_pushlightuserdata(L, S);
+	lua_settable(L, LUA_REGISTRYINDEX);
+	lua_sethook(NL, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+	return 1;	
 }
 #endif
 
 static int profiler_pause(lua_State *L) {
-  lprofP_STATE* S;
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  S = (lprofP_STATE*)lua_touserdata(L, -1);
-  lprofM_pause_function(S);
-  return 0;
+	lprofP_STATE* S;
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	S = (lprofP_STATE*)lua_touserdata(L, -1);
+	lprofM_pause_function(S);
+	return 0;
 }
 
 static int profiler_resume(lua_State *L) {
-  lprofP_STATE* S;
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  S = (lprofP_STATE*)lua_touserdata(L, -1);
-  lprofM_resume_function(S);
-  return 0;
+	lprofP_STATE* S;
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	S = (lprofP_STATE*)lua_touserdata(L, -1);
+	lprofM_resume_function(S);
+	return 0;
 }
 
 static int profiler_init(lua_State *L) {
-  lprofP_STATE* S;
-  lprofP_STATE* R;
-  const char* outfile;
-  //float function_call_time;
-  
-  //stack_level = 0;
+	lprofP_STATE* S;
+	lprofP_STATE* R;
+	const char* outfile;
+	//float function_call_time;
 
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  if(!lua_isnil(L, -1)) {
-    profiler_stop(L);
-  }
-  lua_pop(L, 1);
+	//stack_level = 0;
 
-  // 清理调用信息栈
-  lua_pushlightuserdata(L, &profresult_id);
-  lua_gettable(L, LUA_REGISTRYINDEX);
-  if (!lua_isnil(L, -1)){
-	  profiler_clear(L);
-  }
-  lua_pop(L, 1);
-  
-  //function_call_time = calcCallTime(L);
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	if (!lua_isnil(L, -1)) {
+		profiler_stop(L);
+	}
+	lua_pop(L, 1);
 
-  outfile = NULL;
-  if(lua_gettop(L) >= 1)
-    outfile = luaL_checkstring(L, 1);
+	// 清理调用信息栈
+	lua_pushlightuserdata(L, &profresult_id);
+	lua_gettable(L, LUA_REGISTRYINDEX);
+	if (!lua_isnil(L, -1)){
+		profiler_clear(L);
+	}
+	lua_pop(L, 1);
 
-  // 初始化调用信息栈
-  R = lprofM_init();
-  if (!R){
-	  return luaL_error(L, "LuaProfiler error: can't init profiler result stack!");
-  }
-  lua_pushlightuserdata(L, &profresult_id);
-  lua_pushlightuserdata(L, R);
-  lua_settable(L, LUA_REGISTRYINDEX);
+	//function_call_time = calcCallTime(L);
 
-  /* init with default file name and printing a header line */
-  //if (!(S=lprofP_init_core_profiler(outfile, 1, function_call_time))) {
-  //  return luaL_error(L,"LuaProfiler error: output file could not be opened!");
-  //}
-  if (!(S = lprofP_init_core_profiler(outfile, 1, 0))) {
-	  return luaL_error(L, "LuaProfiler error: output file could not be opened!");
-  }
+	outfile = NULL;
+	if (lua_gettop(L) >= 1)
+		outfile = luaL_checkstring(L, 1);
 
-  lua_sethook(L, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+	// 初始化调用信息栈
+	R = lprofM_init();
+	if (!R){
+		return luaL_error(L, "LuaProfiler error: can't init profiler result stack!");
+	}
+	lua_pushlightuserdata(L, &profresult_id);
+	lua_pushlightuserdata(L, R);
+	lua_settable(L, LUA_REGISTRYINDEX);
 
-  lua_pushlightuserdata(L, &profstate_id);
-  lua_pushlightuserdata(L, S);
-  lua_settable(L, LUA_REGISTRYINDEX);
-	
-  /* use our own exit function instead */
-  lua_getglobal(L, "os");
-  lua_pushlightuserdata(L, &exit_id);
-  lua_pushstring(L, "exit");
-  lua_gettable(L, -3);
+	lua_pop(L, 1);
 
-  lua_settable(L, LUA_REGISTRYINDEX);
-  lua_pushstring(L, "exit");
-  lua_pushcfunction(L, (lua_CFunction)exit_profiler);
-  lua_settable(L, -3);
+	/* init with default file name and printing a header line */
+	//if (!(S=lprofP_init_core_profiler(outfile, 1, function_call_time))) {
+	//  return luaL_error(L,"LuaProfiler error: output file could not be opened!");
+	//}
+	if (!(S = lprofP_init_core_profiler(outfile, 1, 0))) {
+		return luaL_error(L, "LuaProfiler error: output file could not be opened!");
+	}
+
+	lua_sethook(L, (lua_Hook)callhook, LUA_MASKCALL | LUA_MASKRET, 0);
+
+	lua_pushlightuserdata(L, &profstate_id);
+	lua_pushlightuserdata(L, S);
+	lua_settable(L, LUA_REGISTRYINDEX);
+
+	/* use our own exit function instead */
+	lua_getglobal(L, "os");
+	lua_pushlightuserdata(L, &exit_id);
+	lua_pushstring(L, "exit");
+	lua_gettable(L, -3);
+
+	lua_settable(L, LUA_REGISTRYINDEX);
+	lua_pushstring(L, "exit");
+	lua_pushcfunction(L, (lua_CFunction)exit_profiler);
+	lua_settable(L, -3);
 
 #if 0
-  /* use our own coroutine.create function instead */
-  lua_getglobal(L, "coroutine");
-  lua_pushstring(L, "create");
-  lua_pushcfunction(L, (lua_CFunction)coroutine_create);
-  lua_settable(L, -3);
+	/* use our own coroutine.create function instead */
+	lua_getglobal(L, "coroutine");
+	lua_pushstring(L, "create");
+	lua_pushcfunction(L, (lua_CFunction)coroutine_create);
+	lua_settable(L, -3);
 #endif
 
-  /* the following statement is to simulate how the execution stack is */
-  /* supposed to be by the time the profiler is activated when loaded  */
-  /* as a library.                                                     */
+	/* the following statement is to simulate how the execution stack is */
+	/* supposed to be by the time the profiler is activated when loaded  */
+	/* as a library.                                                     */
 
-  lprofP_callhookIN(S, "profiler_init", "(C)", -1, -1);
-	
-  lua_pushboolean(L, 1);
-  return 1;
+	//lprofP_callhookIN(S, "profiler_init", "(C)", -1, -1);
+
+	lua_pushboolean(L, 1);
+	return 1;
 }
 
 static int profiler_clear(lua_State *L){
@@ -263,10 +265,10 @@ static int profiler_stop(lua_State *L) {
 	lua_pushlightuserdata(L, &profstate_id);
 	lua_gettable(L, LUA_REGISTRYINDEX);
 
-	if(!lua_isnil(L, -1)) {
+	if (!lua_isnil(L, -1)) {
 		S = (lprofP_STATE*)lua_touserdata(L, -1);
 		R = (lprofP_STATE*)lua_touserdata(L, -2);
-    
+
 		/* leave all functions under execution */
 		while (lprofP_callhookOUT(S, R));
 		while (lprofP_output(R));
@@ -282,7 +284,8 @@ static int profiler_stop(lua_State *L) {
 
 		lua_pushboolean(L, 1);
 
-	} else { lua_pushboolean(L, 0); }
+	}
+	else { lua_pushboolean(L, 0); }
 
 	return 1;
 }
@@ -314,26 +317,26 @@ static int profiler_stop(lua_State *L) {
 //}
 
 static const luaL_reg prof_funcs[] = {
-  { "pause", profiler_pause },
-  { "resume", profiler_resume },
-  { "start", profiler_init },
-  { "stop", profiler_stop },
-  { NULL, NULL }
+	{ "pause", profiler_pause },
+	{ "resume", profiler_resume },
+	{ "start", profiler_init },
+	{ "stop", profiler_stop },
+	{ NULL, NULL }
 };
 
 int luaopen_profiler(lua_State *L) {
-  luaL_openlib(L, "lua_profiler", prof_funcs, 0);
-  lua_pushliteral (L, "_COPYRIGHT");
-  lua_pushliteral (L, "Copyright (C) 2003-2007 Kepler Project");
-  lua_settable (L, -3);
-  lua_pushliteral (L, "_DESCRIPTION");
-  lua_pushliteral (L, "LuaProfiler is a time profiler designed to help finding bottlenecks in your Lua program.");
-  lua_settable (L, -3);
-  lua_pushliteral (L, "_NAME");
-  lua_pushliteral (L, "LuaProfiler");
-  lua_settable (L, -3);
-  lua_pushliteral (L, "_VERSION");
-  lua_pushliteral (L, "2.0.1");
-  lua_settable (L, -3);
-  return 1;
+	luaL_openlib(L, "lua_profiler", prof_funcs, 0);
+	lua_pushliteral(L, "_COPYRIGHT");
+	lua_pushliteral(L, "Copyright (C) 2003-2007 Kepler Project");
+	lua_settable(L, -3);
+	lua_pushliteral(L, "_DESCRIPTION");
+	lua_pushliteral(L, "LuaProfiler is a time profiler designed to help finding bottlenecks in your Lua program.");
+	lua_settable(L, -3);
+	lua_pushliteral(L, "_NAME");
+	lua_pushliteral(L, "LuaProfiler");
+	lua_settable(L, -3);
+	lua_pushliteral(L, "_VERSION");
+	lua_pushliteral(L, "2.0.1");
+	lua_settable(L, -3);
+	return 1;
 }
