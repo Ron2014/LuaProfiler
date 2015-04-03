@@ -1,2 +1,3 @@
-kc_lua_profiler.h
-kc_lua_profiler.cpp
+kc_lua_profile.h
+kc_lua_profile.cpp
+lua_profiler.h
